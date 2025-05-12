@@ -631,10 +631,7 @@ function toggleReservation(slot) {
 
     const typeText = reservationType === 'shower' ? 'une douche' : 'les toilettes';
     if (confirm(`Confirmer pour ${typeText} à ${time} ?`)) {
-        function toggleReservation(slot) {
-    // ... code existant ...
-    
-    const newRes = {
+        const newRes = {
         date,
         time,
         userId: currentUser.uid,
@@ -643,8 +640,6 @@ function toggleReservation(slot) {
         type: reservationType
     };
 
-    // ... reste du code ...
-}
         console.log('Nouvelle réservation à sauvegarder:', newRes); // AJOUT
         saveReservation(newRes)
             .then(() => showNotification("Réservé !"))
