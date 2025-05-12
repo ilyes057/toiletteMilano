@@ -593,61 +593,61 @@ function deleteReservation(reservationId) {
 
 // Gestion réservation
 function toggleReservation(slot) {
-    console.log('Fonction toggleReservation appelée avec le slot:', slot); // AJOUT
-    if (!currentUser) {
-        alert("Connectez-vous pour réserver");
-        return;
-    }
-
-    const date = slot.dataset.date;
-    const time = slot.dataset.time;
-    const isReserved = slot.classList.contains('reserved');
-    const isMine = slot.classList.contains('mine');
-
-    console.log(`Tentative de réservation par ${currentUser.uid}: ${date} ${time}`, {isReserved, isMine});
-
-    if (isReserved && !isMine) {
-        alert("Déjà réservé par quelqu'un d'autre");
-        return;
-    }
-
-    if (isReserved && isMine) {
-        if (confirm("Annuler cette réservation ?")) {
-        const toDelete = reservations.find(r =>
-                r.date === date && r.time === time && r.userId === currentUser.uid
-            );
-
-            if (toDelete) {
-                console.log('ID de la réservation à supprimer:', toDelete.id); // AJOUT
-                deleteReservation(toDelete.id)
-                    .then(() => showNotification("Annulé !"))
-                    .catch(err => console.error(err));
-            } else {
-                console.log('Erreur: Aucune réservation correspondante trouvée pour la suppression.'); // AJOUT
-            }
+        if (!currentUser) {
+            alert("Connectez-vous pour réserver");
+            return;
         }
-        return;
-    }
 
-    const typeText = reservationType === 'shower' ? 'une douche' : 'les toilettes';
-    if (confirm(`Confirmer pour ${typeText} à ${time} ?`)) {
-        const newRes = {
-        date,
-        time,
-        userId: currentUser.uid,
-        userEmail: currentUser.email, // Stocke aussi l'email
-        timeString: slot.textContent,
-        type: reservationType
-    };
+        const date = slot.dataset.date;
+        const time = slot.dataset.time;
+        const isReserved = slot.classList.contains('reserved');
+        const isMine = slot.classList.contains('mine');
 
-        console.log('Nouvelle réservation à sauvegarder:', newRes); // AJOUT
-        saveReservation(newRes)
-            .then(() => showNotification("Réservé !"))
-            .catch(err => console.error(err));
-    } else {
-        console.log('Réservation annulée par l\'utilisateur.'); // AJOUT
+        console.log(`Tentative de réservation par ${currentUser.uid}: ${date} ${time}`, {isReserved, isMine});
+
+        if (isReserved && !isMine) {
+            alert("Déjà réservé par quelqu'un d'autre");
+            return;
+        }
+
+        if (isReserved && isMine) {
+            if (confirm("Annuler cette réservation ?")) {
+                const toDelete = reservations.find(r =>
+                    r.date === date && r.time === time && r.userId === currentUser.uid
+                );
+
+                if (toDelete) {
+                    console.log('ID de la réservation à supprimer:', toDelete.id);
+                    deleteReservation(toDelete.id)
+                        .then(() => showNotification("Annulé !"))
+                        .catch(err => console.error(err));
+                } else {
+                    console.log('Erreur: Aucune réservation correspondante trouvée pour la suppression.');
+                }
+            }
+            return;
+        }
+
+        const typeText = reservationType === 'shower' ? 'une douche' : 'les toilettes';
+        console.log('Avant la boîte de dialogue de confirmation.'); // AJOUT
+        if (confirm(`Confirmer pour ${typeText} à ${time} ?`)) {
+            console.log('Boîte de dialogue confirmée.'); // AJOUT
+            const newRes = {
+                date,
+                time,
+                userId: currentUser.uid,
+                userEmail: currentUser.email, // Stocke aussi l'email
+                timeString: slot.textContent,
+                type: reservationType
+            };
+            console.log('newRes a été défini:', newRes); // AJOUT
+            saveReservation(newRes)
+                .then(() => showNotification("Réservé !"))
+                .catch(err => console.error(err));
+        } else {
+            console.log('Réservation annulée par l\'utilisateur.');
+        }
     }
-}
 
 // Mise à jour interface
 function updateCalendar() {
