@@ -717,7 +717,7 @@ function toggleReservation(slot) {
 
 // Mise à jour interface
 function updateCalendar() {
-    console.log('updateCalendar appelée, currentUser UID:', currentUser ? currentUser.uid : 'non connecté');
+    console.log('updateCalendar called, reservations:', reservations); // AJOUT
     document.querySelectorAll('.time-slot').forEach(slot => {
         const date = slot.getAttribute('data-date');
         const time = slot.getAttribute('data-time');
@@ -726,55 +726,45 @@ function updateCalendar() {
 
         const reservation = reservations.find(r => r.date === date && r.time === time);
         if (reservation) {
-            console.log('Réservation trouvée:', reservation.userId);
+            console.log('Reservation found:', reservation); // AJOUT
             slot.classList.add('reserved', reservation.type || 'toilet');
             if (currentUser && reservation.userId === currentUser.uid) {
-                console.log('Ceci est ma réservation!');
                 slot.classList.add('mine');
-            } else if (currentUser) {
-                console.log('Réservation par un autre utilisateur:', reservation.userId);
             }
         }
     });
 }
 
 function updateReservationLists() {
-    database.ref('users').once('value').then((usersSnapshot) => {
-            const users = {};
-            usersSnapshot.forEach(child => {
-                const userData = child.val();
-                if (userData) {
-                    users[child.key] = userData.name || (userData.email ? userData.email.split('@')[0] : 'Anonyme');
-                } else {
-                    users[child.key] = 'Utilisateur supprimé'; // Ou une autre indication
-                }
-            });
+    console.log('updateReservationLists called, reservations:', reservations); // AJOUT
+    const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
+    console.log('myReservs:', myReservs); // AJOUT
+    myReservationsDiv.innerHTML = myReservs.length === 0 ?
+        '<p>Aucune réservation</p>' :
+        myReservs.map(r => `
+            <div class="reservation-item">
+                <span>${formatDate(r.date)} à ${r.timeString} - <span class="math-inline">\{r\.type \=\=\= 'shower' ? 'Douche' \: 'Toilettes'\}</span\>
+<button class\="cancel\-btn" data\-id\="</span>{r.id}">Annuler</button>
+            </div>`
+        ).join('');
 
-            const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
-            myReservationsDiv.innerHTML = myReservs.length === 0 ?
-                '<p>Aucune réservation</p>' :
-                myReservs.map(r => `
-                    <div class="reservation-item">
-                        <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                        <button class="cancel-btn" data-id="${r.id}">Annuler</button>
-                    </div>`
-                ).join('');
+    allReservationsDiv.innerHTML = reservations.length === 0 ?
+        '<p>Aucune réservation</p>' :
+        reservations.map(r => {
+            const userName = r.userName || 'Anonyme';
+            return `
+                <div class="reservation-item">
+                    <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${userName} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                </div>`;
+        }).join('');
+    console.log('allReservationsDiv.innerHTML:', allReservationsDiv.innerHTML); // AJOUT
 
-            allReservationsDiv.innerHTML = reservations.length === 0 ?
-                '<p>Aucune réservation</p>' :
-                reservations.map(r => `
-                    <div class="reservation-item">
-                        <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${users[r.userId] || 'Anonyme'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                    </div>`
-                ).join('');
-
-            document.querySelectorAll('.cancel-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const id = this.getAttribute('data-id');
-                    deleteReservation(id);
-                });
-            });
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            deleteReservation(id);
         });
+    });
 }
 
 function showNotification(message) {
