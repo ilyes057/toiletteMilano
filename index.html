@@ -576,15 +576,27 @@ function loadReservations() {
 
 // Sauvegarder
 function saveReservation(reservation) {
-    return database.ref('users/' + currentUser.uid).once('value').then((snapshot) => {
-        const userData = snapshot.val();
-        const newKey = database.ref('reservations').push().key;
-        return database.ref('reservations/' + newKey).set({
-            ...reservation,
-            userName: userData.name || userData.email.split('@')[0] // Ajoute le nom ou l'email
-        });
+    const newKey = database.ref('reservations').push().key;
+    return database.ref('reservations/' + newKey).set({
+        ...reservation,
+        userEmail: currentUser.email, // Stocke l'email de l'utilisateur
+        userName: currentUser.displayName || null // Stocke le nom si disponible
     });
 }
+function updateUserName() {
+    const newName = prompt("Entrez votre nom/pseudo à afficher:");
+    if (newName) {
+        database.ref('users/' + currentUser.uid).update({
+            name: newName
+        }).then(() => {
+            showNotification("Nom mis à jour !");
+            loadReservations(); // Recharge les réservations pour afficher le nouveau nom
+        });
+    }
+}
+
+// Ajoutez un bouton dans votre HTML pour déclencher cette fonction
+// <button onclick="updateUserName()">Changer mon nom</button>
 
 // Supprimer
 function deleteReservation(reservationId) {
@@ -673,38 +685,42 @@ function updateCalendar() {
 }
 
 function updateReservationLists() {
-    // Charger d'abord tous les utilisateurs
     database.ref('users').once('value').then((usersSnapshot) => {
-        const users = {};
-        usersSnapshot.forEach(child => {
-            users[child.key] = child.val().name || child.val().email.split('@')[0];
-        });
+            const users = {};
+            usersSnapshot.forEach(child => {
+                const userData = child.val();
+                if (userData) {
+                    users[child.key] = userData.name || (userData.email ? userData.email.split('@')[0] : 'Anonyme');
+                } else {
+                    users[child.key] = 'Utilisateur supprimé'; // Ou une autre indication
+                }
+            });
 
-        const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
-        myReservationsDiv.innerHTML = myReservs.length === 0 ?
-            '<p>Aucune réservation</p>' :
-            myReservs.map(r => `
-                <div class="reservation-item">
-                    <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                    <button class="cancel-btn" data-id="${r.id}">Annuler</button>
-                </div>`
-            ).join('');
+            const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
+            myReservationsDiv.innerHTML = myReservs.length === 0 ?
+                '<p>Aucune réservation</p>' :
+                myReservs.map(r => `
+                    <div class="reservation-item">
+                        <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                        <button class="cancel-btn" data-id="${r.id}">Annuler</button>
+                    </div>`
+                ).join('');
 
-        allReservationsDiv.innerHTML = reservations.length === 0 ?
-            '<p>Aucune réservation</p>' :
-            reservations.map(r => `
-                <div class="reservation-item">
-                    <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${users[r.userId] || 'Anonyme'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                </div>`
-            ).join('');
+            allReservationsDiv.innerHTML = reservations.length === 0 ?
+                '<p>Aucune réservation</p>' :
+                reservations.map(r => `
+                    <div class="reservation-item">
+                        <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${users[r.userId] || 'Anonyme'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                    </div>`
+                ).join('');
 
-        document.querySelectorAll('.cancel-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.getAttribute('data-id');
-                deleteReservation(id);
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    deleteReservation(id);
+                });
             });
         });
-    });
 }
 
 function showNotification(message) {
