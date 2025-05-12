@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réservation de Toilettes - Voyage à Milan</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 5px 5px 0 0;
+        }
+        h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .login-section {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .login-form input {
+            padding: 10px;
+            width: 60%;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+        .calendar {
+            margin-top: 20px;
+        }
+        .day {
+            margin-bottom: 30px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .day-header {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+        }
+        .time-slots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .time-slot {
+            padding: 8px 12px;
+            background-color: #e9e9e9;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .time-slot:hover {
+            background-color: #d1d1d1;
+        }
+        .time-slot.reserved {
+            background-color: #ff9999;
+            cursor: not-allowed;
+        }
+        .time-slot.mine {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .time-slot.toilet {
+            border-left: 5px solid #ff6600;
+        }
+        .time-slot.shower {
+            border-left: 5px solid #0066ff;
+        }
+        .reservation-type-selector {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .reservation-type-selector label {
+            margin-right: 15px;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border-radius: 3px;
+        }
+        .legend-color.toilet {
+            border-left: 5px solid #ff6600;
+            background-color: #e9e9e9;
+        }
+        .legend-color.shower {
+            border-left: 5px solid #0066ff;
+            background-color: #e9e9e9;
+        }
+        .legend-color.mine {
+            background-color: #4CAF50;
+        }
+        .legend-color.reserved {
+            background-color: #ff9999;
+        }
+        .user-info {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #e9f7ef;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .reservation-list {
+            margin-top: 20px;
+        }
+        .reservation-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 10px;
+            color: #777;
+            font-size: 14px;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Réservation de Toilettes - Voyage à Milan</h1>
+            <p>23 mai - 26 mai 2025</p>
+        </header>
+
+        <div id="login-section" class="login-section">
+            <h2>Connectez-vous ou inscrivez-vous</h2>
+            <div id="signup-form">
+                <h3>Inscription</h3>
+                <form id="register-form" class="login-form">
+                    <input type="email" id="register-email" placeholder="Adresse e-mail" required>
+                    <br>
+                    <input type="password" id="register-password" placeholder="Mot de passe" required>
+                    <br>
+                    <button type="submit">S'inscrire</button>
+                </form>
+                <div id="registration-error" style="color: red;"></div>
+            </div>
+            <div id="login-form-container">
+                <h3>Connexion</h3>
+                <form id="signin-form" class="login-form">
+                    <input type="email" id="signin-email" placeholder="Adresse e-mail" required>
+                    <br>
+                    <input type="password" id="signin-password" placeholder="Mot de passe" required>
+                    <br>
+                    <button type="submit">Se connecter</button>
+                </form>
+                <div id="login-error" style="color: red;"></div>
+            </div>
+        </div>
+
+        <div id="booking-section" class="hidden">
+            <div id="user-info" class="user-info">
+                Connecté en tant que: <span id="current-user"></span>
+                <button id="logout-btn" style="float: right; background-color: #ff6b6b;">Déconnexion</button>
+            </div>
+
+            <div class="reservation-type-selector">
+                <h3>Type de réservation</h3>
+                <input type="radio" id="toilet" name="reservation-type" value="toilet" checked>
+                <label for="toilet">Toilettes</label>
+                <input type="radio" id="shower" name="reservation-type" value="shower">
+                <label for="shower">Douche</label>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color toilet"></div>
+                    <span>Toilettes</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color shower"></div>
+                    <span>Douche</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color mine"></div>
+                    <span>Mes réservations</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color reserved"></div>
+                    <span>Réservé</span>
+                </div>
+            </div>
+
+            <div class="calendar">
+                <div class="day">
+                    <div class="day-header">Vendredi 23 mai 2025</div>
+                    <div class="time-slots" id="day1-slots">
+                        <div class="time-slot" data-date="2025-05-23" data-time="07:00">07:00 - 07:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="07:15">07:15 - 07:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="07:30">07:30 - 07:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="07:45">07:45 - 08:00</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="08:00">08:00 - 08:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="08:15">08:15 - 08:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="08:30">08:30 - 08:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="08:45">08:45 - 09:00</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="18:00">18:00 - 18:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="18:15">18:15 - 18:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="18:30">18:30 - 18:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="18:45">18:45 - 19:00</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="19:00">19:00 - 19:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="19:15">19:15 - 19:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="19:30">19:30 - 19:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="19:45">19:45 - 20:00</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="20:00">20:00 - 20:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="20:15">20:15 - 20:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="20:30">20:30 - 20:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="20:45">20:45 - 21:00</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="21:00">21:00 - 21:15</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="21:15">21:15 - 21:30</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="21:30">21:30 - 21:45</div>
+                        <div class="time-slot" data-date="2025-05-23" data-time="21:45">21:45 - 22:00</div>
+                    </div>
+                </div>
+
+                <div class="day">
+                    <div class="day-header">Samedi 24 mai 2025</div>
+                    <div class="time-slots" id="day2-slots">
+                        <div class="time-slot" data-date="2025-05-24" data-time="07:00">07:00 - 07:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="07:15">07:15 - 07:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="07:30">07:30 - 07:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="07:45">07:45 - 08:00</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="08:00">08:00 - 08:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="08:15">08:15 - 08:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="08:30">08:30 - 08:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="08:45">08:45 - 09:00</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="18:00">18:00 - 18:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="18:15">18:15 - 18:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="18:30">18:30 - 18:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="18:45">18:45 - 19:00</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="19:00">19:00 - 19:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="19:15">19:15 - 19:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="19:30">19:30 - 19:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="19:45">19:45 - 20:00</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="20:00">20:00 - 20:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="20:15">20:15 - 20:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="20:30">20:30 - 20:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="20:45">20:45 - 21:00</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="21:00">21:00 - 21:15</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="21:15">21:15 - 21:30</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="21:30">21:30 - 21:45</div>
+                        <div class="time-slot" data-date="2025-05-24" data-time="21:45">21:45 - 22:00</div>
+                    </div>
+                </div>
+
+                <div class="day">
+                    <div class="day-header">Dimanche 25 mai 2025</div>
+                    <div class="time-slots" id="day3-slots">
+                        <div class="time-slot" data-date="2025-05-25" data-time="07:00">07:00 - 07:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="07:15">07:15 - 07:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="07:30">07:30 - 07:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="07:45">07:45 - 08:00</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="08:00">08:00 - 08:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="08:15">08:15 - 08:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="08:30">08:30 - 08:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="08:45">08:45 - 09:00</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="18:00">18:00 - 18:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="18:15">18:15 - 18:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="18:30">18:30 - 18:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="18:45">18:45 - 19:00</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="19:00">19:00 - 19:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="19:15">19:15 - 19:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="19:30">19:30 - 19:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="19:45">19:45 - 20:00</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="20:00">20:00 - 20:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="20:15">20:15 - 20:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="20:30">20:30 - 20:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="20:45">20:45 - 21:00</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="21:00">21:00 - 21:15</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="21:15">21:15 - 21:30</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="21:30">21:30 - 21:45</div>
+                        <div class="time-slot" data-date="2025-05-25" data-time="21:45">21:45 - 22:00</div>
+                    </div>
+                </div>
+
+                <div class="day">
+                    <div class="day-header">Lundi 26 mai 2025</div>
+                    <div class="time-slots" id="day4-slots">
+                        <div class="time-slot" data-date="2025-05-26" data-time="07:00">07:00 - 07:15</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="07:15">07:15 - 07:30</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="07:30">07:30 - 07:45</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="07:45">07:45 - 08:00</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="08:00">08:00 - 08:15</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="08:15">08:15 - 08:30</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="08:30">08:30 - 08:45</div>
+                        <div class="time-slot" data-date="2025-05-26" data-time="08:45">08:45 - 09:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reservation-list">
+                <h3>Mes Réservations</h3>
+                <div id="my-reservations"></div>
+            </div>
+
+            <div class="reservation-list">
+                <h3>Toutes les Réservations</h3>
+                <div id="all-reservations"></div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Planificateur de Toilettes - Voyage à Milan 2025</p>
+        </div>
+    </div>
+
+   <script>
+// Configuration Firebase - REMPLACEZ par vos valeurs
+const firebaseConfig = {
+    apiKey: "AIzaSyBfu9IxCpB-drBSwuIvH-gFGfHtmslX_oY",
+    authDomain: "toilettes-milan.firebaseapp.com",
+    databaseURL: "https://toilettes-milan-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "toilettes-milan",
+    storageBucket: "toilettes-milan.firebasestorage.app",
+    messagingSenderId: "891237107064",
+    appId: "1:891237107064:web:5eef891676eec7775a348d",
+    measurementId: "G-J5HZ4MTNS6"
+};
+
+// Initialisation avec vérification
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const database = firebase.database();
+
+// Éléments du DOM
+const registerForm = document.getElementById('register-form');
+const signinForm = document.getElementById('signin-form');
+const registrationError = document.getElementById('registration-error');
+const loginError = document.getElementById('login-error');
+const loginSection = document.getElementById('login-section');
+const bookingSection = document.getElementById('booking-section');
+const currentUserSpan = document.getElementById('current-user');
+const logoutBtn = document.getElementById('logout-btn');
+const myReservationsDiv = document.getElementById('my-reservations');
+const allReservationsDiv = document.getElementById('all-reservations');
+let currentUser = null; // Utilisateur Firebase authentifié
+let reservationType = 'toilet';
+let reservations = [];
+
+// Au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    // Observer l'état de l'authentification de l'utilisateur
+    firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+            // L'utilisateur est connecté
+            currentUser = user;
+            updateUI(user);
+            loadReservations(); // Recharger les réservations après la connexion
+        } else {
+            // L'utilisateur est déconnecté
+            currentUser = null;
+            updateUI(null);
+            // Afficher la section de connexion
+            loginSection.classList.remove('hidden');
+            bookingSection.classList.add('hidden');
+        }
+    });
+
+    // Écouteur pour l'inscription
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // L'utilisateur s'est inscrit avec succès
+                    const user = userCredential.user;
+                    console.log("Inscription réussie:", user);
+                    registrationError.textContent = '';
+                    updateUI(user);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error("Erreur d'inscription:", errorCode, errorMessage);
+                    registrationError.textContent = errorMessage;
+                });
+        });
+    }
+
+    // Écouteur pour la connexion
+    if (signinForm) {
+        signinForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // L'utilisateur s'est connecté avec succès
+                    const user = userCredential.user;
+                    console.log("Connexion réussie:", user);
+                    loginError.textContent = '';
+                    updateUI(user);
+                })
+                .catch((error) => {
+                    const errorCode = error.code;
+                    const errorMessage = error.message;
+                    console.error("Erreur de connexion:", errorCode, errorMessage);
+                    loginError.textContent = errorMessage;
+                });
+        });
+    }
+
+    // Écouteur pour la déconnexion
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            firebase.auth().signOut().then(() => {
+                console.log("Déconnexion réussie");
+                updateUI(null);
+            }).catch((error) => {
+                console.error("Erreur de déconnexion:", error);
+            });
+        });
+    }
+
+    document.querySelectorAll('input[name="reservation-type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            reservationType = this.value;
+        });
+    });
+
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        slot.addEventListener('click', function() {
+            if (!this.classList.contains('reserved') || this.classList.contains('mine')) {
+                toggleReservation(this);
+            }
+        });
+    });
+});
+
+function updateUI(user) {
+    if (user) {
+        currentUserSpan.textContent = user.email || 'Utilisateur connecté'; // Afficher l'e-mail ou un message
+        loginSection.classList.add('hidden');
+        bookingSection.classList.remove('hidden');
+    } else {
+        currentUserSpan.textContent = '';
+        loginSection.classList.remove('hidden');
+        bookingSection.classList.add('hidden');
+    }
+}
+
+// Charger les réservations
+function loadReservations() {
+    return new Promise((resolve) => {
+        database.ref('reservations').on('value', (snapshot) => {
+            reservations = [];
+            snapshot.forEach(child => {
+                reservations.push({
+                    id: child.key,
+                    ...child.val()
+                });
+            });
+            updateCalendar();
+            updateReservationLists();
+            resolve();
+        });
+    });
+}
+
+// Sauvegarder
+function saveReservation(reservation) {
+    const newKey = database.ref('reservations').push().key;
+    return database.ref('reservations/' + newKey).set(reservation);
+}
+
+// Supprimer
+function deleteReservation(reservationId) {
+    return database.ref('reservations/' + reservationId).remove();
+}
+
+// Gestion réservation
+function toggleReservation(slot) {
+    console.log('Fonction toggleReservation appelée avec le slot:', slot); // AJOUT
+    if (!currentUser) {
+        alert("Connectez-vous pour réserver");
+        return;
+    }
+
+    const date = slot.dataset.date;
+    const time = slot.dataset.time;
+    const isReserved = slot.classList.contains('reserved');
+    const isMine = slot.classList.contains('mine');
+
+    console.log(`Tentative de réservation par ${currentUser.uid}: ${date} ${time}`, {isReserved, isMine});
+
+    if (isReserved && !isMine) {
+        alert("Déjà réservé par quelqu'un d'autre");
+        return;
+    }
+
+    if (isReserved && isMine) {
+        if (confirm("Annuler cette réservation ?")) {
+        const toDelete = reservations.find(r =>
+                r.date === date && r.time === time && r.userId === currentUser.uid
+            );
+
+            if (toDelete) {
+                console.log('ID de la réservation à supprimer:', toDelete.id); // AJOUT
+                deleteReservation(toDelete.id)
+                    .then(() => showNotification("Annulé !"))
+                    .catch(err => console.error(err));
+            } else {
+                console.log('Erreur: Aucune réservation correspondante trouvée pour la suppression.'); // AJOUT
+            }
+        }
+        return;
+    }
+
+    const typeText = reservationType === 'shower' ? 'une douche' : 'les toilettes';
+    if (confirm(`Confirmer pour ${typeText} à ${time} ?`)) {
+        const newRes = {
+            date,
+            time,
+            userId: currentUser.uid, // Enregistrer l'UID de l'utilisateur
+            timeString: slot.textContent,
+            type: reservationType
+        };
+
+        console.log('Nouvelle réservation à sauvegarder:', newRes); // AJOUT
+        saveReservation(newRes)
+            .then(() => showNotification("Réservé !"))
+            .catch(err => console.error(err));
+    } else {
+        console.log('Réservation annulée par l\'utilisateur.'); // AJOUT
+    }
+}
+
+// Mise à jour interface
+function updateCalendar() {
+    console.log('updateCalendar appelée, currentUser UID:', currentUser ? currentUser.uid : 'non connecté');
+    document.querySelectorAll('.time-slot').forEach(slot => {
+        const date = slot.getAttribute('data-date');
+        const time = slot.getAttribute('data-time');
+
+        slot.classList.remove('reserved', 'mine', 'toilet', 'shower');
+
+        const reservation = reservations.find(r => r.date === date && r.time === time);
+        if (reservation) {
+            console.log('Réservation trouvée:', reservation.userId);
+            slot.classList.add('reserved', reservation.type || 'toilet');
+            if (currentUser && reservation.userId === currentUser.uid) {
+                console.log('Ceci est ma réservation!');
+                slot.classList.add('mine');
+            } else if (currentUser) {
+                console.log('Réservation par un autre utilisateur:', reservation.userId);
+            }
+        }
+    });
+}
+
+function updateReservationLists() {
+    const myReservs = reservations.filter(r => {
+        const isMine = currentUser && r.userId === currentUser.uid;
+        console.log('Réservation:', r.id, 'UID:', r.userId, 'Est la mienne:', isMine, 'currentUser UID:', currentUser ? currentUser.uid : 'non connecté');
+        return isMine;
+    });
+    myReservationsDiv.innerHTML = myReservs.length === 0 ?
+        '<p>Aucune réservation</p>' :
+        myReservs.map(r => `
+            <div class="reservation-item">
+                <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                <button class="cancel-btn" data-id="${r.id}">Annuler</button>
+            </div>`
+        ).join('');
+
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            deleteReservation(id);
+        });
+    });
+
+    allReservationsDiv.innerHTML = reservations.length === 0 ?
+        '<p>Aucune réservation</p>' :
+        reservations.map(r => `
+            <div class="reservation-item">
+                <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${r.userId ? r.userId.substring(0, 8) : 'Inconnu'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+            </div>`
+        ).join('');
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.bottom = '20px';
+    notification.style.right = '20px';
+    notification.style.backgroundColor = '#4CAF50';
+    notification.style.color = 'white';
+    notification.style.padding = '15px';
+    notification.style.borderRadius = '5px';
+    notification.style.zIndex = '1000';
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    return date.toLocaleDateString('fr-FR', options);
+}
+</script>
+</body>
+</html>
