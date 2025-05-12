@@ -473,12 +473,11 @@ registerForm.addEventListener('submit', function(e) {
     e.preventDefault();
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
-    const name = prompt("Entrez votre nom/pseudo:"); // Demander le nom
+    const name = prompt("Entrez votre nom/pseudo:");
 
     firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
             const user = userCredential.user;
-            // Enregistrer le nom dans la base de données
             return database.ref('users/' + user.uid).set({
                 email: email,
                 name: name
@@ -577,11 +576,14 @@ function loadReservations() {
 
 // Sauvegarder
 function saveReservation(reservation) {
-    const newKey = database.ref('reservations').push().key;
-    return database.ref('reservations/' + newKey).set({
-        ...reservation,
-        userEmail: currentUser.email,
-        userName: currentUser.displayName || null
+    return database.ref('users/' + currentUser.uid).once('value').then((snapshot) => {
+        const userData = snapshot.val();
+        const userName = userData.name || userData.email.split('@')[0] || 'Anonyme'; // Préférer le nom, sinon email, sinon Anonyme
+        const newKey = database.ref('reservations').push().key;
+        return database.ref('reservations/' + newKey).set({
+            ...reservation,
+            userName: userName // Utilisez le nom récupéré de la base de données
+        });
     });
 }
 function updateUserName() {
@@ -590,11 +592,19 @@ function updateUserName() {
         database.ref('users/' + currentUser.uid).update({
             name: newName
         }).then(() => {
-            showNotification("Nom mis à jour !");
-            loadReservations();
+            // Mettre à jour currentUser.displayName (si vous en avez besoin)
+            firebase.auth().currentUser.updateProfile({
+                displayName: newName
+            }).then(() => {
+                showNotification("Nom mis à jour !");
+                loadReservations();
+            }).catch((error) => {
+                console.error("Erreur lors de la mise à jour du profil:", error);
+                alert("Erreur: " + error.message);
+            });
         }).catch((error) => {
             console.error("Erreur lors de la mise à jour du nom:", error);
-            alert("Erreur: " + error.message); // Affichez l'erreur à l'utilisateur
+            alert("Erreur: " + error.message);
         });
     }
 }
@@ -621,15 +631,14 @@ function updateReservationLists() {
             ).join('');
 
         allReservationsDiv.innerHTML = reservations.length === 0 ?
-            '<p>Aucune réservation</p>' :
-            reservations.map(r => {
-                // Accédez directement à userName dans la réservation
-                const userName = r.userName || users[r.userId] || 'Anonyme'; 
-                return `
-                    <div class="reservation-item">
-                        <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${userName} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                    </div>`;
-            }).join('');
+        '<p>Aucune réservation</p>' :
+        reservations.map(r => {
+            const userName = r.userName || 'Anonyme';
+            return `
+                <div class="reservation-item">
+                    <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${userName} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                </div>`;
+        }).join('');
 
         document.querySelectorAll('.cancel-btn').forEach(btn => {
             btn.addEventListener('click', function() {
