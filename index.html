@@ -467,26 +467,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Écouteur pour l'inscription
     if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const email = document.getElementById('register-email').value;
-            const password = document.getElementById('register-password').value;
+        // Dans la partie inscription, ajoutez un champ pour le nom
+registerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('register-email').value;
+    const password = document.getElementById('register-password').value;
+    const name = prompt("Entrez votre nom/pseudo:"); // Demander le nom
 
-            firebase.auth().createUserWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    // L'utilisateur s'est inscrit avec succès
-                    const user = userCredential.user;
-                    console.log("Inscription réussie:", user);
-                    registrationError.textContent = '';
-                    updateUI(user);
-                })
-                .catch((error) => {
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    console.error("Erreur d'inscription:", errorCode, errorMessage);
-                    registrationError.textContent = errorMessage;
-                });
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            // Enregistrer le nom dans la base de données
+            return database.ref('users/' + user.uid).set({
+                email: email,
+                name: name
+            });
+        })
+        .then(() => {
+            registrationError.textContent = '';
+            updateUI(user);
+        })
+        .catch((error) => {
+            registrationError.textContent = error.message;
         });
+});
     }
 
     // Écouteur pour la connexion
@@ -572,8 +576,14 @@ function loadReservations() {
 
 // Sauvegarder
 function saveReservation(reservation) {
-    const newKey = database.ref('reservations').push().key;
-    return database.ref('reservations/' + newKey).set(reservation);
+    return database.ref('users/' + currentUser.uid).once('value').then((snapshot) => {
+        const userData = snapshot.val();
+        const newKey = database.ref('reservations').push().key;
+        return database.ref('reservations/' + newKey).set({
+            ...reservation,
+            userName: userData.name || userData.email.split('@')[0] // Ajoute le nom ou l'email
+        });
+    });
 }
 
 // Supprimer
@@ -621,14 +631,20 @@ function toggleReservation(slot) {
 
     const typeText = reservationType === 'shower' ? 'une douche' : 'les toilettes';
     if (confirm(`Confirmer pour ${typeText} à ${time} ?`)) {
-        const newRes = {
-            date,
-            time,
-            userId: currentUser.uid, // Enregistrer l'UID de l'utilisateur
-            timeString: slot.textContent,
-            type: reservationType
-        };
+        function toggleReservation(slot) {
+    // ... code existant ...
+    
+    const newRes = {
+        date,
+        time,
+        userId: currentUser.uid,
+        userEmail: currentUser.email, // Stocke aussi l'email
+        timeString: slot.textContent,
+        type: reservationType
+    };
 
+    // ... reste du code ...
+}
         console.log('Nouvelle réservation à sauvegarder:', newRes); // AJOUT
         saveReservation(newRes)
             .then(() => showNotification("Réservé !"))
@@ -662,34 +678,38 @@ function updateCalendar() {
 }
 
 function updateReservationLists() {
-    const myReservs = reservations.filter(r => {
-        const isMine = currentUser && r.userId === currentUser.uid;
-        console.log('Réservation:', r.id, 'UID:', r.userId, 'Est la mienne:', isMine, 'currentUser UID:', currentUser ? currentUser.uid : 'non connecté');
-        return isMine;
-    });
-    myReservationsDiv.innerHTML = myReservs.length === 0 ?
-        '<p>Aucune réservation</p>' :
-        myReservs.map(r => `
-            <div class="reservation-item">
-                <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-                <button class="cancel-btn" data-id="${r.id}">Annuler</button>
-            </div>`
-        ).join('');
+    // Charger d'abord tous les utilisateurs
+    database.ref('users').once('value').then((usersSnapshot) => {
+        const users = {};
+        usersSnapshot.forEach(child => {
+            users[child.key] = child.val().name || child.val().email.split('@')[0];
+        });
 
-    document.querySelectorAll('.cancel-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.getAttribute('data-id');
-            deleteReservation(id);
+        const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
+        myReservationsDiv.innerHTML = myReservs.length === 0 ?
+            '<p>Aucune réservation</p>' :
+            myReservs.map(r => `
+                <div class="reservation-item">
+                    <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                    <button class="cancel-btn" data-id="${r.id}">Annuler</button>
+                </div>`
+            ).join('');
+
+        allReservationsDiv.innerHTML = reservations.length === 0 ?
+            '<p>Aucune réservation</p>' :
+            reservations.map(r => `
+                <div class="reservation-item">
+                    <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${users[r.userId] || 'Anonyme'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                </div>`
+            ).join('');
+
+        document.querySelectorAll('.cancel-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteReservation(id);
+            });
         });
     });
-
-    allReservationsDiv.innerHTML = reservations.length === 0 ?
-        '<p>Aucune réservation</p>' :
-        reservations.map(r => `
-            <div class="reservation-item">
-                <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${r.userId ? r.userId.substring(0, 8) : 'Inconnu'} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
-            </div>`
-        ).join('');
 }
 
 function showNotification(message) {
