@@ -216,6 +216,7 @@
         <div id="booking-section" class="hidden">
             <div id="user-info" class="user-info">
                 Connecté en tant que: <span id="current-user"></span>
+                <button onclick="updateUserName()">Changer mon nom</button>
                 <button id="logout-btn" style="float: right; background-color: #ff6b6b;">Déconnexion</button>
             </div>
 
@@ -260,7 +261,7 @@
             <div class="time-slot" data-date="2025-05-23" data-time="23:30">23:30 - 00:00</div>
         </div>
     </div>
-
+    
     <div class="day">
         <div class="day-header">Samedi 24 mai 2025</div>
         <div class="time-slots" id="day2-slots">
@@ -579,20 +580,50 @@ function saveReservation(reservation) {
     const newKey = database.ref('reservations').push().key;
     return database.ref('reservations/' + newKey).set({
         ...reservation,
-        userEmail: currentUser.email, // Stocke l'email de l'utilisateur
-        userName: currentUser.displayName || null // Stocke le nom si disponible
+        userEmail: currentUser.email,
+        userName: currentUser.displayName || null
     });
 }
-function updateUserName() {
-    const newName = prompt("Entrez votre nom/pseudo à afficher:");
-    if (newName) {
-        database.ref('users/' + currentUser.uid).update({
-            name: newName
-        }).then(() => {
-            showNotification("Nom mis à jour !");
-            loadReservations(); // Recharge les réservations pour afficher le nouveau nom
+function updateReservationLists() {
+    database.ref('users').once('value').then((usersSnapshot) => {
+        const users = {};
+        usersSnapshot.forEach(child => {
+            const userData = child.val();
+            if (userData) {
+                users[child.key] = userData.name || (userData.email ? userData.email.split('@')[0] : 'Anonyme');
+            } else {
+                users[child.key] = 'Utilisateur supprimé';
+            }
         });
-    }
+
+        const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
+        myReservationsDiv.innerHTML = myReservs.length === 0 ?
+            '<p>Aucune réservation</p>' :
+            myReservs.map(r => `
+                <div class="reservation-item">
+                    <span>${formatDate(r.date)} à ${r.timeString} - <span class="math-inline">\{r\.type \=\=\= 'shower' ? 'Douche' \: 'Toilettes'\}</span\>
+<button class\="cancel\-btn" data\-id\="</span>{r.id}">Annuler</button>
+                </div>`
+            ).join('');
+
+        allReservationsDiv.innerHTML = reservations.length === 0 ?
+            '<p>Aucune réservation</p>' :
+            reservations.map(r => {
+                // Accédez directement à userName dans la réservation
+                const userName = r.userName || users[r.userId] || 'Anonyme'; 
+                return `
+                    <div class="reservation-item">
+                        <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${userName} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                    </div>`;
+            }).join('');
+
+        document.querySelectorAll('.cancel-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                deleteReservation(id);
+            });
+        });
+    });
 }
 
 // Ajoutez un bouton dans votre HTML pour déclencher cette fonction
