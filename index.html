@@ -721,15 +721,13 @@ function updateCalendar() {
 }
 
 function updateReservationLists() {
-    console.log('updateReservationLists called, reservations:', reservations); // AJOUT
     const myReservs = reservations.filter(r => currentUser && r.userId === currentUser.uid);
-    console.log('myReservs:', myReservs); // AJOUT
     myReservationsDiv.innerHTML = myReservs.length === 0 ?
         '<p>Aucune réservation</p>' :
         myReservs.map(r => `
             <div class="reservation-item">
-                <span>${formatDate(r.date)} à ${r.timeString} - <span class="math-inline">\{r\.type \=\=\= 'shower' ? 'Douche' \: 'Toilettes'\}</span\>
-<button class\="cancel\-btn" data\-id\="</span>{r.id}">Annuler</button>
+                <span>${formatDate(r.date)} à ${r.timeString} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
+                <button class="cancel-btn" data-id="${r.id}">Annuler</button>
             </div>`
         ).join('');
 
@@ -742,7 +740,6 @@ function updateReservationLists() {
                     <span>${formatDate(r.date)} à ${r.timeString} - Utilisateur: ${userName} - ${r.type === 'shower' ? 'Douche' : 'Toilettes'}</span>
                 </div>`;
         }).join('');
-    console.log('allReservationsDiv.innerHTML:', allReservationsDiv.innerHTML); // AJOUT
 
     document.querySelectorAll('.cancel-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -751,7 +748,6 @@ function updateReservationLists() {
         });
     });
 }
-
 function showNotification(message) {
     const notification = document.createElement('div');
     notification.style.position = 'fixed';
