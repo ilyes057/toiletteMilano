@@ -584,6 +584,20 @@ function saveReservation(reservation) {
         userName: currentUser.displayName || null
     });
 }
+function updateUserName() {
+    const newName = prompt("Entrez votre nom/pseudo à afficher:");
+    if (newName) {
+        database.ref('users/' + currentUser.uid).update({
+            name: newName
+        }).then(() => {
+            showNotification("Nom mis à jour !");
+            loadReservations();
+        }).catch((error) => {
+            console.error("Erreur lors de la mise à jour du nom:", error);
+            alert("Erreur: " + error.message); // Affichez l'erreur à l'utilisateur
+        });
+    }
+}
 function updateReservationLists() {
     database.ref('users').once('value').then((usersSnapshot) => {
         const users = {};
