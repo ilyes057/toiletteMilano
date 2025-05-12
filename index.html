@@ -216,7 +216,6 @@
         <div id="booking-section" class="hidden">
             <div id="user-info" class="user-info">
                 Connecté en tant que: <span id="current-user"></span>
-                <button onclick="updateUserName()">Changer mon nom</button>
                 <button id="logout-btn" style="float: right; background-color: #ff6b6b;">Déconnexion</button>
             </div>
 
@@ -586,28 +585,7 @@ function saveReservation(reservation) {
         });
     });
 }
-function updateUserName() {
-    const newName = prompt("Entrez votre nom/pseudo à afficher:");
-    if (newName) {
-        database.ref('users/' + currentUser.uid).update({
-            name: newName
-        }).then(() => {
-            // Mettre à jour currentUser.displayName (si vous en avez besoin)
-            firebase.auth().currentUser.updateProfile({
-                displayName: newName
-            }).then(() => {
-                showNotification("Nom mis à jour !");
-                loadReservations();
-            }).catch((error) => {
-                console.error("Erreur lors de la mise à jour du profil:", error);
-                alert("Erreur: " + error.message);
-            });
-        }).catch((error) => {
-            console.error("Erreur lors de la mise à jour du nom:", error);
-            alert("Erreur: " + error.message);
-        });
-    }
-}
+
 function updateReservationLists() {
     database.ref('users').once('value').then((usersSnapshot) => {
         const users = {};
@@ -654,7 +632,14 @@ function updateReservationLists() {
 
 // Supprimer
 function deleteReservation(reservationId) {
-    return database.ref('reservations/' + reservationId).remove();
+    return database.ref('reservations/' + reservationId).remove()
+        .then(() => {
+            loadReservations(); // Recharge les réservations après la suppression
+        })
+        .catch(error => {
+            console.error("Erreur lors de la suppression de la réservation:", error);
+            alert("Erreur: " + error.message);
+        });
 }
 
 // Gestion réservation
